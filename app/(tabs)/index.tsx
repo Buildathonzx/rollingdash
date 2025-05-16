@@ -1,54 +1,54 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol'; // Assuming you have an Icon component
 
 export default function HomeScreen() {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
       headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+        <IconSymbol 
+          name="car.2.fill" 
+          size={200} 
+          color="#FFFFFF" 
+          style={styles.headerImage} 
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
+        <ThemedText type="title">Welcome to RollingDash!</ThemedText>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
+      <ThemedView style={styles.sectionContainer}>
+        <ThemedText type="subtitle">Your Smart Car Data Marketplace</ThemedText>
         <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
+          Explore real-time data from your (simulated) vehicle, choose what data you want to share, 
+          and see how a decentralized marketplace for mobility data could work.
         </ThemedText>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
+      <ThemedView style={styles.sectionContainer}>
+        <ThemedText type="subtitle">Key Features:</ThemedText>
+        <View style={styles.featureItem}>
+          <IconSymbol name="speedometer" size={24} color="#0a7ea4" style={styles.featureIcon}/>
+          <ThemedText>View Real-time Vehicle Metrics (Dashboard)</ThemedText>
+        </View>
+        <View style={styles.featureItem}>
+          <IconSymbol name="storefront.fill" size={24} color="#0a7ea4" style={styles.featureIcon}/>
+          <ThemedText>Explore the Data Marketplace</ThemedText>
+        </View>
+        <View style={styles.featureItem}>
+          <IconSymbol name="figure.walk.motion" size={24} color="#0a7ea4" style={styles.featureIcon}/>
+          <ThemedText>Simulate Drives (Explore Tab)</ThemedText>
+        </View>
+        <View style={styles.featureItem}>
+          <IconSymbol name="gearshape.fill" size={24} color="#0a7ea4" style={styles.featureIcon}/>
+          <ThemedText>Manage Data & Settings</ThemedText>
+        </View>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
+      <ThemedView style={styles.sectionContainer}>
         <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+          This prototype is built for the DeCharge x Para DePIN Hackathon.
         </ThemedText>
       </ThemedView>
     </ParallaxScrollView>
@@ -56,20 +56,28 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerImage: {
+    // Adjust as needed for your IconSymbol component
+    // Example: might need to wrap in a View or adjust positioning
+    alignSelf: 'center',
+    marginTop: 40, // Adjust to position correctly in the parallax header
+  },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginBottom: 16,
   },
-  stepContainer: {
+  sectionContainer: {
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 16,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
+  featureIcon: {
+    marginRight: 8,
+  }
 });
