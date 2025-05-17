@@ -124,33 +124,3 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
-}
-}
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  svg: {
-    transform: [{ rotate: '-90deg' }],
-  },
-  labelContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progressText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  valueLabel: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  label: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 4,
-  },
-});
