@@ -1,46 +1,59 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolViewProps } from 'expo-symbols';
-import React, { ComponentProps } from 'react';
-import { SFSymbol } from 'react-native-sfsymbols';
+import { Platform } from 'react-native';
+import { SymbolView, SymbolViewProps, SymbolWeight } from 'expo-symbols';
+import React from 'react';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
-type IconSymbolName = keyof typeof MAPPING;
-
-/**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
- */
-const MAPPING = {
+// Map SF Symbols to MaterialIcons for Android/web
+const MAPPING: Record<string, string> = {
   'house.fill': 'home',
+  'car.fill': 'directions-car',
+  'storefront.fill': 'storefront',
   'paperplane.fill': 'send',
-  'chevron.left.forwardslash.chevron.right': 'code',
+  'gearshape.fill': 'settings',
   'chevron.right': 'chevron-right',
-} as IconMapping;
+  'chevron.left': 'chevron-left',
+  'chevron.left.forwardslash.chevron.right': 'code',
+  'speedometer': 'speed',
+  'gauge': 'speed',
+  'drop.fill': 'water-drop',
+  'thermometer': 'device-thermostat',
+  'location.fill': 'location-on',
+  'chart.line.uptrend.xyaxis': 'show-chart',
+  'arrow.clockwise': 'refresh',
+  'checkmark.circle.fill': 'check-circle',
+  'exclamationmark.triangle.fill': 'warning',
+  'xmark.circle.fill': 'cancel',
+  'info.circle.fill': 'info',
+  'arrow.up.right': 'trending-up',
+  'arrow.down.right': 'trending-down',
+  'figure.walk.motion': 'directions-walk',
+  'car.2.fill': 'directions-car',
+  'map.fill': 'map',
+};
 
-/**
- * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
- */
-interface IconSymbolProps {
+export function IconSymbol({ name, size, color, style, weight = 'regular' }: {
   name: string;
   size: number;
   color: string;
   style?: any;
-}
-
-export function IconSymbol({ name, size, color, style }: IconSymbolProps) {
+  weight?: SymbolWeight;
+}) {
+  if (Platform.OS === 'ios') {
+    return (
+      <SymbolView
+        name={name as SymbolViewProps['name']}
+        weight={weight}
+        tintColor={color}
+        resizeMode="scaleAspectFit"
+        style={[{ width: size, height: size }, style]}
+      />
+    );
+  }
+  // Fallback for Android/web
+  const iconName = (MAPPING[name] || 'help-outline') as keyof typeof MaterialIcons.glyphMap;
   return (
-    <SFSymbol
-      name={name}
-      weight="medium"
-      scale="medium"
-      color={color}
-      size={size}
-      style={style}
-    />
+    <MaterialIcons name={iconName} size={size} color={color} style={style} />
   );
 }
