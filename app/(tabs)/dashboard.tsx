@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dimensions, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, {
-    interpolateColor,
+    interpolate,
     useAnimatedScrollHandler,
     useAnimatedStyle,
     useSharedValue,
@@ -143,18 +143,18 @@ export default function DashboardScreen() {
   
   const headerAnimatedStyle = useAnimatedStyle(() => {
     return {
-      opacity: interpolateColor(
+      opacity: interpolate(
         scrollY.value,
         [0, 50],
         [1, 0.9]
-      ) as any,
+      ),
       transform: [
         { 
-          translateY: interpolateColor(
+          translateY: interpolate(
             scrollY.value,
             [0, 50],
             [0, -10]
-          ) as any 
+          )
         }
       ]
     };

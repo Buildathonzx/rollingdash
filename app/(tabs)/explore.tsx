@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dimensions, Image, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -43,11 +43,10 @@ interface ResourceCardProps {
   title: string;
   description: string;
   url: string;
-  imageSource: any;
   delay: number;
 }
 
-function ResourceCard({ title, description, url, imageSource, delay }: ResourceCardProps) {
+function ResourceCard({ title, description, url, emoji, delay }: ResourceCardProps & { emoji: string }) {
   const handlePress = () => {
     Linking.openURL(url);
   };
@@ -56,7 +55,9 @@ function ResourceCard({ title, description, url, imageSource, delay }: ResourceC
     <Animated.View entering={FadeInDown.delay(delay).duration(500)}>
       <TouchableOpacity activeOpacity={0.8} onPress={handlePress}>
         <ThemedView style={styles.resourceCard}>
-          <Image source={imageSource} style={styles.resourceImage} />
+          <View style={styles.resourceEmojiContainer}>
+            <ThemedText style={styles.resourceEmoji}>{emoji}</ThemedText>
+          </View>
           <View style={styles.resourceContent}>
             <ThemedText style={styles.resourceTitle}>{title}</ThemedText>
             <ThemedText style={styles.resourceDescription}>{description}</ThemedText>
@@ -175,7 +176,7 @@ export default function ExploreScreen() {
           title="DeCharge Network"
           description="Building the world's decentralized EV charging infrastructure."
           url="https://decharge.network"
-          imageSource={require('@/assets/images/placeholder.png')}
+          emoji="⚡"
           delay={500}
         />
         
@@ -183,7 +184,7 @@ export default function ExploreScreen() {
           title="Para Wallet SDK"
           description="Create non-custodial wallets for DePIN applications."
           url="https://para.org"
-          imageSource={require('@/assets/images/placeholder.png')}
+          emoji="👛"
           delay={600}
         />
         
@@ -191,7 +192,7 @@ export default function ExploreScreen() {
           title="DePIN Community"
           description="Join the global conversation about decentralized infrastructure."
           url="https://t.me/dechargecommunity"
-          imageSource={require('@/assets/images/placeholder.png')}
+          emoji="🌐"
           delay={700}
         />
       </ScrollView>
@@ -303,10 +304,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  resourceImage: {
+  resourceEmojiContainer: {
     width: '100%',
     height: 120,
-    resizeMode: 'cover',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(150, 150, 150, 0.08)',
+  },
+  resourceEmoji: {
+    fontSize: 56,
   },
   resourceContent: {
     padding: 16,
