@@ -1,9 +1,9 @@
+import { useThemeColor } from '@/hooks/useThemeColor';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { IconSymbol } from './ui/IconSymbol';
-import { useThemeColor } from '@/hooks/useThemeColor';
 
 interface MapViewProps {
   latitude: string | number;

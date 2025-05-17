@@ -1,22 +1,38 @@
-// filepath: /home/nathfavour/Documents/code/buildathonzx/rollingdash/app/(tabs)/marketplace.tsx
 import React, { useState } from 'react';
-import { Button, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// Import components
+import { AppBar } from '@/components/AppBar';
+import { Button } from '@/components/Button';
+import { Card } from '@/components/Card';
+import { ProgressRing } from '@/components/ProgressRing';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol'; // Assuming you have an Icon component
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
-// Mock data for marketplace listings - replace with actual data source
-const initialDataListings = [
-  { id: '1', name: 'Speed Data', description: 'Share your average and max speed.', shared: true, category: 'Metrics' },
-  { id: '2', name: 'GPS Location Trails', description: 'Share anonymized location history.', shared: false, category: 'Location' },
-  { id: '3', name: 'Fuel Consumption Patterns', description: 'Help optimize city-wide fuel usage.', shared: true, category: 'Efficiency' },
-  { id: '4', name: 'Diagnostic Trouble Codes (DTCs)', description: 'Contribute to predictive maintenance models.', shared: false, category: 'Diagnostics' },
-  { id: '5', name: 'Engine RPM Data', description: 'Share engine performance metrics.', shared: true, category: 'Metrics' },
-];
+// Import data simulation
+import { DataListingItem, getMarketplaceListings } from '@/features/data-simulation';
+import { useThemeColor } from '@/hooks/useThemeColor';
+
+const AnimatedCard = Animated.createAnimatedComponent(Card);
 
 export default function MarketplaceScreen() {
-  const [dataListings, setDataListings] = useState(initialDataListings);
+  const [dataListings, setDataListings] = useState<DataListingItem[]>(getMarketplaceListings());
+  const [totalRewards, setTotalRewards] = useState(0.42); // Initial simulated value
+  const [activeFilter, setActiveFilter] = useState('all');
+  const tintColor = useThemeColor({}, 'tint');
+  const insets = useSafeAreaInsets();
+
+  React.useEffect(() => {
+    // Calculate total potential rewards
+    const potentialRewards = dataListings
+      .filter(item => item.shared)
+      .reduce((sum, item) => sum + item.rewardsPerDay, 0);
+    
+    setTotalRewards(potentialRewards);
+  }, [dataListings]);
 
   const toggleShare = (id: string) => {
     setDataListings(prevListings =>
@@ -24,47 +40,196 @@ export default function MarketplaceScreen() {
         item.id === id ? { ...item, shared: !item.shared } : item
       )
     );
-    // TODO: Add logic to persist this change (e.g., to a backend or local storage)
-    console.log(`Toggled sharing for item ${id}`);
+  };
+
+  const filterItems = (items: DataListingItem[]) => {
+    if (activeFilter === 'all') return items;
+    return items.filter(item => item.category.toLowerCase() === activeFilter.toLowerCase());
+  };
+  
+  const getPrivacyColor = (level: 'Low' | 'Medium' | 'High') => {
+    switch (level) {
+      case 'Low': return '#4cd964';
+      case 'Medium': return '#FF9500';
+      case 'High': return '#FF3B30';
+    }
+  };
+
+  const categoryFilters = [
+    { id: 'all', name: 'All', icon: 'chart.pie.fill' },
+    { id: 'metrics', name: 'Metrics', icon: 'speedometer' },
+    { id: 'location', name: 'Location', icon: 'location.fill' },
+    { id: 'efficiency', name: 'Efficiency', icon: 'leaf.fill' },
+    { id: 'diagnostics', name: 'Diagnostics', icon: 'waveform.path.ecg' },
+    { id: 'safety', name: 'Safety', icon: 'shield.fill' },
+  ];
+  
+  const FilterButton = ({ filter }: { filter: { id: string, name: string, icon: string } }) => {
+    const textColor = useThemeColor({}, 'text');
+    return (
+      <TouchableOpacity
+        style={[
+          styles.filterButton,
+          activeFilter === filter.id && { backgroundColor: `${tintColor}20` }
+        ]}
+        onPress={() => setActiveFilter(filter.id)}
+      >
+        <IconSymbol 
+          name={filter.icon} 
+          size={18} 
+          color={activeFilter === filter.id ? tintColor : textColor} 
+        />
+        <ThemedText 
+          style={[
+            styles.filterText,
+            activeFilter === filter.id && { color: tintColor, fontWeight: '600' }
+          ]}
+        >
+          {filter.name}
+        </ThemedText>
+      </TouchableOpacity>
+    );
+  };
+  
+  const ListingItem = ({ item }: { item: DataListingItem }) => {
+    const privacyColor = getPrivacyColor(item.privacyLevel);
+    
+    return (
+      <AnimatedCard
+        entering={FadeInDown.delay(parseInt(item.id) * 100).duration(400)}
+        title={item.name}
+        description={item.description}
+        icon={getCategoryIcon(item.category)}
+        rightContent={
+          <Switch
+            trackColor={{ false: '#767577', true: `${tintColor}50` }}
+            thumbColor={item.shared ? tintColor : '#f4f3f4'}
+            ios_backgroundColor="#3e3e3e"
+            onValueChange={() => toggleShare(item.id)}
+            value={item.shared}
+          />
+        }
+      >
+        <View style={styles.listingDetails}>
+          <View style={styles.listingDetail}>
+            <IconSymbol name="bitcoin.circle.fill" size={16} color={tintColor} />
+            <ThemedText style={styles.detailText}>
+              {item.rewardsPerDay.toFixed(2)} DCL/day
+            </ThemedText>
+          </View>
+          
+          <View style={styles.listingDetail}>
+            <IconSymbol name="shield.fill" size={16} color={privacyColor} />
+            <ThemedText style={[styles.detailText, { color: privacyColor }]}>
+              {item.privacyLevel} Privacy Impact
+            </ThemedText>
+          </View>
+          
+          <ThemedText style={styles.categoryTag}>
+            {item.category}
+          </ThemedText>
+        </View>
+      </AnimatedCard>
+    );
+  };
+  
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'Metrics': return 'speedometer';
+      case 'Location': return 'location.fill';
+      case 'Efficiency': return 'leaf.fill';
+      case 'Diagnostics': return 'waveform.path.ecg';
+      case 'Safety': return 'shield.fill';
+      default: return 'chart.pie.fill';
+    }
   };
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContentContainer}>
-        <View style={styles.headerContainer}>
-          <IconSymbol name="storefront.fill" size={30} style={styles.headerIcon}/>
-          <ThemedText type="title">Mobility Data Marketplace</ThemedText>
+      <AppBar 
+        title="Data Marketplace" 
+        rightActions={
+          <IconSymbol name="arrow.clockwise" size={22} color={tintColor} />
+        }
+      />
+      
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContentContainer,
+          { paddingBottom: insets.bottom + 16 }
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryContent}>
+            <ThemedText type="subtitle">Your Data Rewards</ThemedText>
+            <ThemedText type="title" style={styles.rewardsValue}>
+              {totalRewards.toFixed(2)} <ThemedText style={styles.unit}>DCL/day</ThemedText>
+            </ThemedText>
+            <ThemedText style={styles.rewardsCaption}>
+              Based on your current data sharing settings
+            </ThemedText>
+            <Button
+              title="Withdraw Rewards"
+              onPress={() => {}}
+              variant="primary"
+              icon="wallet.pass.fill"
+              style={styles.withdrawButton}
+            />
+          </View>
+          
+          <View style={styles.progressRingContainer}>
+            <ProgressRing
+              progress={(dataListings.filter(i => i.shared).length / dataListings.length) * 100}
+              size={100}
+              label="Data shared"
+              color={tintColor}
+            />
+          </View>
         </View>
         
-        <ThemedText style={styles.description}>
-          Choose which data points you want to share with the marketplace. Your contributions can help power new mobility solutions and earn you rewards.
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Filter Data Categories
         </ThemedText>
-
-        {dataListings.map(item => (
-          <ThemedView key={item.id} style={styles.dataItemCard}>
-            <View style={styles.dataItemInfo}>
-              <ThemedText type="subtitle" style={styles.dataItemTitle}>{item.name}</ThemedText>
-              <ThemedText style={styles.dataItemDescription}>{item.description}</ThemedText>
-              <ThemedText style={styles.dataItemCategory}>Category: {item.category}</ThemedText>
-            </View>
-            <Switch
-              trackColor={{ false: '#767577', true: '#81b0ff' }}
-              thumbColor={item.shared ? '#0a7ea4' : '#f4f3f4'}
-              ios_backgroundColor="#3e3e3e"
-              onValueChange={() => toggleShare(item.id)}
-              value={item.shared}
-            />
-          </ThemedView>
+        
+        <FlatList
+          horizontal
+          data={categoryFilters}
+          renderItem={({ item }) => <FilterButton filter={item} />}
+          keyExtractor={item => item.id}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filtersContainer}
+        />
+        
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Available Data Points
+        </ThemedText>
+        
+        {filterItems(dataListings).map(item => (
+          <ListingItem key={item.id} item={item} />
         ))}
-
-        <ThemedView style={styles.actionSection}>
-            <Button title="View My Shared Data Summary" onPress={() => console.log("Navigate to shared data summary")} />
-            {/* TODO: Implement navigation or modal for summary */}
-        </ThemedView>
-
-        <ThemedText style={styles.noteText}>
-          (Marketplace functionality is currently a prototype. Data sharing and rewards are simulated.)
+        
+        <ThemedText style={styles.marketplaceInfo}>
+          By sharing your vehicle data, you help improve mobility services while earning rewards.
+          All shared data is anonymized to protect your privacy.
         </ThemedText>
+        
+        <View style={styles.actionButtons}>
+          <Button
+            title="Privacy Settings"
+            onPress={() => {}}
+            variant="outline"
+            icon="key.fill"
+            style={styles.actionButton}
+          />
+          <Button
+            title="Rewards History"
+            onPress={() => {}}
+            variant="outline"
+            icon="doc.text.fill"
+            style={styles.actionButton}
+          />
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -77,55 +242,92 @@ const styles = StyleSheet.create({
   scrollContentContainer: {
     padding: 16,
   },
-  headerContainer: {
+  summaryCard: {
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    marginVertical: 8,
+    flexDirection: 'row',
+  },
+  summaryContent: {
+    flex: 1.5,
+  },
+  progressRingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rewardsValue: {
+    fontSize: 28,
+    marginVertical: 8,
+  },
+  unit: {
+    fontSize: 16,
+    opacity: 0.8,
+  },
+  rewardsCaption: {
+    opacity: 0.7,
+    marginBottom: 16,
+  },
+  withdrawButton: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  sectionTitle: {
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  filtersContainer: {
+    paddingVertical: 8,
+  },
+  filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
-  headerIcon: {
-    // Add styles if needed
+  filterText: {
+    marginLeft: 6,
+    fontSize: 14,
   },
-  description: {
-    marginBottom: 20,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  dataItemCard: {
+  listingDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  listingDetail: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 12,
-    // ThemedView provides background
+    marginRight: 16,
   },
-  dataItemInfo: {
-    flex: 1,
-  },
-  dataItemTitle: {
-    fontSize: 18,
-    marginBottom: 4,
-  },
-  dataItemDescription: {
+  detailText: {
     fontSize: 14,
-    marginBottom: 4,
+    marginLeft: 4,
   },
-  dataItemCategory: {
+  categoryTag: {
     fontSize: 12,
+    opacity: 0.7,
     fontStyle: 'italic',
-    color: 'gray',
   },
-  actionSection: {
-    marginTop: 20,
-    marginBottom: 10,
-    alignItems: 'center',
-  },
-  noteText: {
-    marginTop: 20,
+  marketplaceInfo: {
+    fontSize: 14,
+    opacity: 0.7,
     textAlign: 'center',
-    fontSize: 12,
-    fontStyle: 'italic',
-    color: 'gray',
+    marginTop: 24,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 16,
+  },
+  actionButton: {
+    flex: 1,
+    marginHorizontal: 4,
   },
 });

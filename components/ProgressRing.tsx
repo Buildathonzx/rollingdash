@@ -1,14 +1,14 @@
+import { useThemeColor } from '@/hooks/useThemeColor';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { 
-  useAnimatedProps, 
-  useDerivedValue, 
-  useSharedValue, 
-  withTiming 
+import Animated, {
+    useAnimatedProps,
+    useDerivedValue,
+    useSharedValue,
+    withTiming
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { ThemedText } from './ThemedText';
-import { useThemeColor } from '@/hooks/useThemeColor';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 

@@ -1,15 +1,15 @@
+import { useThemeColor } from '@/hooks/useThemeColor';
+import * as Haptics from 'expo-haptics';
 import React from 'react';
-import { 
-  ActivityIndicator, 
-  Pressable, 
-  StyleSheet, 
-  View, 
-  ViewStyle 
+import {
+    ActivityIndicator,
+    Pressable,
+    StyleSheet,
+    View,
+    ViewStyle
 } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { IconSymbol } from './ui/IconSymbol';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import * as Haptics from 'expo-haptics';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger';
 
