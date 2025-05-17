@@ -1,9 +1,9 @@
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { Platform } from 'react-native';
 import { SymbolView, SymbolViewProps, SymbolWeight } from 'expo-symbols';
 import React from 'react';
+import { Platform } from 'react-native';
 
 // Map SF Symbols to MaterialIcons for Android/web
 const MAPPING: Record<string, string> = {
