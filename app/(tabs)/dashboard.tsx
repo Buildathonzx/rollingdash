@@ -1,96 +1,169 @@
-import React, { useEffect, useState } from 'react';
-import { Dimensions, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import React from 'react';
+import { Dimensions, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, {
+    interpolateColor,
+    useAnimatedScrollHandler,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Import components
 import { AppBar } from '@/components/AppBar';
-import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
-import { DataWidget } from '@/components/DataWidget';
-import { MapView } from '@/components/MapView';
-import { MetricChart } from '@/components/MetricChart';
-import { ProgressRing } from '@/components/ProgressRing';
+import { EarningsCard } from '@/components/EarningsCard';
 import { StatusIndicator } from '@/components/StatusIndicator';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 
 // Import data simulation
-import { dtcCodes, useCarData } from '@/features/data-simulation';
+import { DIAGNOSTIC_CODES, useCarData } from '@/features/data-simulation';
 import { useThemeColor } from '@/hooks/useThemeColor';
 
-const AnimatedCard = Animated.createAnimatedComponent(Card);
-const AnimatedDataWidget = Animated.createAnimatedComponent(DataWidget);
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-interface CategoryItem {
-  id: string;
-  name: string;
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function MetricCard({ 
+  title, 
+  value, 
+  unit, 
+  icon, 
+  color,
+  onPress
+}: { 
+  title: string; 
+  value: number | string; 
+  unit: string; 
   icon: string;
+  color: string;
+  onPress?: () => void;
+}) {
+  const scale = useSharedValue(1);
+  
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }]
+    };
+  });
+  
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, { damping: 10 });
+  };
+  
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 10 });
+  };
+  
+  return (
+    <AnimatedPressable
+      style={[animatedStyle, styles.metricCard]}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={onPress}
+    >
+      <ThemedView style={[styles.metricCardInner, { borderLeftColor: color, borderLeftWidth: 4 }]}>
+        <View style={styles.metricHeader}>
+          <ThemedText style={styles.metricTitle}>{title}</ThemedText>
+          <IconSymbol name={icon} size={20} color={color} />
+        </View>
+        
+        <View style={styles.metricValue}>
+          <ThemedText style={styles.valueText}>{value}</ThemedText>
+          <ThemedText style={styles.unitText}>{unit}</ThemedText>
+        </View>
+      </ThemedView>
+    </AnimatedPressable>
+  );
+}
+
+function GaugeChart({ value, max, color, title, icon }: { 
+  value: number; 
+  max: number; 
+  color: string;
+  title: string;
+  icon: string;
+}) {
+  const percentage = Math.min(100, (value / max) * 100);
+  
+  return (
+    <ThemedView style={styles.gaugeContainer}>
+      <View style={styles.gaugeHeaderRow}>
+        <IconSymbol name={icon} size={20} color={color} />
+        <ThemedText style={styles.gaugeTitle}>{title}</ThemedText>
+      </View>
+      
+      <View style={styles.gaugeTrack}>
+        <View 
+          style={[
+            styles.gaugeFill, 
+            { width: `${percentage}%`, backgroundColor: color }
+          ]} 
+        />
+      </View>
+      
+      <View style={styles.gaugeLabels}>
+        <ThemedText style={styles.gaugeValue}>{value}</ThemedText>
+        <ThemedText style={styles.gaugeMax}>/ {max}</ThemedText>
+      </View>
+    </ThemedView>
+  );
 }
 
 export default function DashboardScreen() {
-  const { carData, dataHistory } = useCarData(2000);
-  const [totalEarnings, setTotalEarnings] = useState(0);
-  const [activeCategory, setActiveCategory] = useState('all');
+  const { carData, totalEarnings } = useCarData();
+  
   const tintColor = useThemeColor({}, 'tint');
   const insets = useSafeAreaInsets();
-
-  useEffect(() => {
-    // Update total earnings
-    setTotalEarnings(prev => prev + parseFloat(carData.simulatedEarnings));
-  }, [carData.simulatedEarnings]);
-
+  const scrollY = useSharedValue(0);
+  
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+  
   const getDiagnosticStatus = (diagnostics: string[]) => {
     if (diagnostics.includes('No issues')) {
       return { type: 'good', message: 'All systems normal' };
     } else {
-      const dtcMessage = diagnostics.map(code => dtcCodes[code as keyof typeof dtcCodes] || code).join(', ');
-      return { type: 'warning', message: `Issue detected: ${dtcMessage}` };
+      return { 
+        type: 'warning', 
+        message: 'Issue detected: ' + diagnostics.map(code => 
+          code in DIAGNOSTIC_CODES 
+            ? `${code} (${DIAGNOSTIC_CODES[code]})` 
+            : code
+        ).join(', ')
+      };
     }
   };
 
   const { type: statusType, message: statusMessage } = getDiagnosticStatus(carData.diagnostics);
   
-  const categories: CategoryItem[] = [
-    { id: 'all', name: 'All Data', icon: 'chart.line.uptrend.xyaxis' },
-    { id: 'battery', name: 'Battery', icon: 'battery.100' },
-    { id: 'efficiency', name: 'Efficiency', icon: 'leaf.fill' },
-    { id: 'location', name: 'Location', icon: 'location.fill' },
-  ];
-  
-  const CategoryButton = ({ category }: { category: CategoryItem }) => {
-    const textColor = useThemeColor({}, 'text');
-    
-    return (
-      <TouchableOpacity
-        style={[
-          styles.categoryButton,
-          activeCategory === category.id && { backgroundColor: `${tintColor}20` }
-        ]}
-        onPress={() => setActiveCategory(category.id)}
-      >
-        <IconSymbol 
-          name={category.icon} 
-          size={20} 
-          color={activeCategory === category.id ? tintColor : textColor} 
-        />
-        <ThemedText 
-          style={[
-            styles.categoryText,
-            activeCategory === category.id && { color: tintColor, fontWeight: '600' }
-          ]}
-        >
-          {category.name}
-        </ThemedText>
-      </TouchableOpacity>
-    );
-  };
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolateColor(
+        scrollY.value,
+        [0, 50],
+        [1, 0.9]
+      ) as any,
+      transform: [
+        { 
+          translateY: interpolateColor(
+            scrollY.value,
+            [0, 50],
+            [0, -10]
+          ) as any 
+        }
+      ]
+    };
+  });
 
   return (
     <ThemedView style={styles.container}>
       <AppBar 
-        title={carData.carModel || "Vehicle Dashboard"} 
+        title="Vehicle Dashboard" 
         rightActions={
           <TouchableOpacity style={styles.refreshButton}>
             <IconSymbol name="arrow.clockwise" size={22} color={tintColor} />
@@ -98,175 +171,165 @@ export default function DashboardScreen() {
         }
       />
       
-      <ScrollView 
+      <Animated.ScrollView 
         contentContainerStyle={[
           styles.scrollContentContainer,
           { paddingBottom: insets.bottom + 16 }
         ]}
         showsVerticalScrollIndicator={false}
+        onScroll={scrollHandler}
+        scrollEventThrottle={16}
       >
-        <StatusIndicator 
-          type={statusType as 'good' | 'warning' | 'error' | 'info'} 
-          message={statusMessage} 
-        />
-        
-        <View style={styles.statsOverview}>
-          <Animated.View 
-            entering={FadeInDown.delay(200).duration(500)} 
-            style={styles.statCard}
-          >
-            <ProgressRing 
-              progress={carData.fuelLevel} 
-              size={100} 
-              label="Fuel Level" 
-              color="#3498db" 
-            />
-          </Animated.View>
-          
-          <Animated.View 
-            entering={FadeInDown.delay(400).duration(500)} 
-            style={styles.statInfo}
-          >
-            <ThemedText type="title" style={styles.earnings}>
-              {totalEarnings.toFixed(4)} <ThemedText style={styles.token}>DCL</ThemedText>
-            </ThemedText>
-            <ThemedText style={styles.earningsLabel}>
-              Total earnings from your data
-            </ThemedText>
-            <Button 
-              title="Share More Data" 
-              onPress={() => {}} 
-              variant="secondary" 
-              icon="square.and.arrow.up" 
-              size="small"
-              style={styles.shareButton}
-            />
-          </Animated.View>
-        </View>
-        
-        <View style={styles.categoryList}>
-          <FlatList
-            horizontal
-            data={categories}
-            renderItem={({ item }) => <CategoryButton category={item} />}
-            keyExtractor={item => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesContainer}
-          />
-        </View>
-        
-        <Animated.View 
-          entering={FadeInRight.delay(300).duration(500)} 
-          style={styles.speedSection}
-        >
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Current Speed
-          </ThemedText>
-          <View style={styles.speedDisplay}>
-            <ThemedText style={styles.speedValue}>{carData.speed}</ThemedText>
-            <ThemedText style={styles.speedUnit}>km/h</ThemedText>
-          </View>
-          
-          <MetricChart
-            title="Speed Trend"
-            data={dataHistory.speed.length > 0 ? dataHistory.speed : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}
-            label="Last 30 seconds"
-            color="#4cd964"
-          />
+        <Animated.View style={[styles.headerSection, headerAnimatedStyle]}>
+          <ThemedText style={styles.headerTitle}>My Vehicle</ThemedText>
+          <ThemedText style={styles.headerSubtitle}>Real-time monitoring</ThemedText>
         </Animated.View>
         
-        <View style={styles.dataWidgetsRow}>
-          <AnimatedDataWidget
-            entering={FadeInDown.delay(500).duration(500)}
+        <View style={styles.statusSection}>
+          <StatusIndicator 
+            type={statusType as 'good' | 'warning' | 'error' | 'info'} 
+            message={statusMessage} 
+          />
+        </View>
+        
+        <View style={styles.metricsGrid}>
+          <MetricCard
+            title="Speed"
+            value={carData.speed}
+            unit="km/h"
+            icon="speedometer"
+            color="#4CD964"
+          />
+          <MetricCard
             title="RPM"
             value={carData.rpm}
             unit="rpm"
             icon="gauge"
-            style={styles.dataWidgetHalf}
-            iconColor="#e74c3c"
+            color="#FF9500"
           />
-          <AnimatedDataWidget
-            entering={FadeInDown.delay(600).duration(500)}
+          <MetricCard
             title="Engine Temp"
             value={carData.engineTemp}
             unit="°C"
             icon="thermometer"
-            style={styles.dataWidgetHalf}
-            iconColor="#e67e22"
+            color="#FF3B30"
           />
-        </View>
-        
-        <View style={styles.dataWidgetsRow}>
-          <AnimatedDataWidget
-            entering={FadeInDown.delay(700).duration(500)}
-            title="Battery"
-            value={carData.batteryLevel.toFixed(1)}
+          <MetricCard
+            title="Fuel Level"
+            value={carData.fuelLevel.toFixed(1)}
             unit="%"
-            icon="battery.100"
-            style={styles.dataWidgetHalf}
-            iconColor="#27ae60"
-          />
-          <AnimatedDataWidget
-            entering={FadeInDown.delay(800).duration(500)}
-            title="Range"
-            value={carData.range}
-            unit="km"
-            icon="car.side.fill"
-            style={styles.dataWidgetHalf}
-            iconColor="#3498db"
+            icon="drop.fill"
+            color="#5AC8FA"
           />
         </View>
         
-        <AnimatedCard
-          entering={FadeInDown.delay(900).duration(500)}
-          title="Vehicle Location"
-          icon="location.fill"
-          iconColor="#FF9500"
-        >
-          <MapView
-            latitude={carData.gps.latitude}
-            longitude={carData.gps.longitude}
-            width={Dimensions.get('window').width - 64}
-            height={180}
-          />
-        </AnimatedCard>
-        
-        <AnimatedCard
-          entering={FadeInDown.delay(1000).duration(500)}
-          title="Eco Impact"
-          description="Environmental benefits from your shared data"
-          icon="leaf.fill"
-          iconColor="#4cd964"
-        >
-          <View style={styles.ecoStatsRow}>
-            <View style={styles.ecoStat}>
-              <ThemedText style={styles.ecoValue}>{carData.emissionsReduced.toFixed(2)}</ThemedText>
-              <ThemedText style={styles.ecoUnit}>kg CO2 saved</ThemedText>
+        <ThemedView style={styles.locationSection}>
+          <View style={styles.sectionHeader}>
+            <ThemedText style={styles.sectionTitle}>Location</ThemedText>
+            <IconSymbol name="location.fill" size={18} color="#FF9500" />
+          </View>
+          
+          <View style={styles.locationDetails}>
+            <View style={styles.locationRow}>
+              <ThemedText style={styles.locationLabel}>Latitude:</ThemedText>
+              <ThemedText style={styles.locationValue}>{carData.gps.latitude}</ThemedText>
             </View>
-            <View style={styles.ecoStat}>
-              <ThemedText style={styles.ecoValue}>{carData.efficiency.toFixed(2)}</ThemedText>
-              <ThemedText style={styles.ecoUnit}>km/kWh efficiency</ThemedText>
+            <View style={styles.locationRow}>
+              <ThemedText style={styles.locationLabel}>Longitude:</ThemedText>
+              <ThemedText style={styles.locationValue}>{carData.gps.longitude}</ThemedText>
             </View>
           </View>
-        </AnimatedCard>
+          
+          <View style={styles.mapPlaceholder}>
+            <IconSymbol name="map.fill" size={24} color={tintColor} />
+            <ThemedText style={styles.mapPlaceholderText}>Map View</ThemedText>
+          </View>
+        </ThemedView>
         
-        <View style={styles.actionButtons}>
-          <Button
-            title="View Full Analytics"
-            onPress={() => {}}
-            variant="primary"
-            icon="chart.bar.fill"
-            style={styles.actionButton}
+        <ThemedView style={styles.gaugeSection}>
+          <View style={styles.sectionHeader}>
+            <ThemedText style={styles.sectionTitle}>Performance</ThemedText>
+            <IconSymbol name="chart.bar.fill" size={18} color={tintColor} />
+          </View>
+          
+          <GaugeChart
+            value={carData.engineLoad}
+            max={100}
+            color="#FF9500"
+            title="Engine Load"
+            icon="gauge"
           />
-          <Button
-            title="Check Diagnostics"
-            onPress={() => {}}
-            variant="outline"
-            icon="waveform.path.ecg"
-            style={styles.actionButton}
+          
+          <GaugeChart
+            value={carData.throttlePosition}
+            max={100}
+            color="#5856D6"
+            title="Throttle Position"
+            icon="arrow.up.right"
           />
-        </View>
-      </ScrollView>
+          
+          <GaugeChart
+            value={carData.dataPointsCollected}
+            max={20}
+            color="#4CD964"
+            title="Data Points"
+            icon="database.fill"
+          />
+        </ThemedView>
+        
+        <EarningsCard
+          value={totalEarnings.toFixed(4)}
+          change="+0.05"
+          isPositiveChange={true}
+          onPress={() => {}}
+        />
+        
+        <ThemedView style={styles.batterySection}>
+          <View style={styles.sectionHeader}>
+            <ThemedText style={styles.sectionTitle}>Battery & Range</ThemedText>
+            <IconSymbol name="battery.100" size={18} color="#4CD964" />
+          </View>
+          
+          <View style={styles.batteryDetails}>
+            <View style={styles.batteryRow}>
+              <ThemedText style={styles.batteryLabel}>Battery Level:</ThemedText>
+              <ThemedText style={styles.batteryValue}>{carData.batteryLevel?.toFixed(1)}%</ThemedText>
+            </View>
+            <View style={styles.batteryProgressContainer}>
+              <View 
+                style={[
+                  styles.batteryProgress, 
+                  { width: `${carData.batteryLevel || 0}%`, backgroundColor: '#4CD964' }
+                ]} 
+              />
+            </View>
+          </View>
+          
+          <View style={styles.batteryStatsRow}>
+            <View style={styles.batteryStatItem}>
+              <IconSymbol name="bolt.fill" size={16} color="#5AC8FA" />
+              <ThemedText style={styles.batteryStatValue}>{carData.efficiency?.toFixed(1)} km/kWh</ThemedText>
+              <ThemedText style={styles.batteryStatLabel}>Efficiency</ThemedText>
+            </View>
+            
+            <View style={styles.statDivider} />
+            
+            <View style={styles.batteryStatItem}>
+              <IconSymbol name="arrow.right" size={16} color="#5AC8FA" />
+              <ThemedText style={styles.batteryStatValue}>{carData.range} km</ThemedText>
+              <ThemedText style={styles.batteryStatLabel}>Range</ThemedText>
+            </View>
+            
+            <View style={styles.statDivider} />
+            
+            <View style={styles.batteryStatItem}>
+              <IconSymbol name="leaf.fill" size={16} color="#4CD964" />
+              <ThemedText style={styles.batteryStatValue}>{carData.emissionsReduced?.toFixed(2)} kg</ThemedText>
+              <ThemedText style={styles.batteryStatLabel}>CO₂ Saved</ThemedText>
+            </View>
+          </View>
+        </ThemedView>
+      </Animated.ScrollView>
     </ThemedView>
   );
 }
@@ -281,105 +344,194 @@ const styles = StyleSheet.create({
   refreshButton: {
     padding: 8,
   },
-  statsOverview: {
-    flexDirection: 'row',
-    marginVertical: 16,
+  headerSection: {
+    marginBottom: 24,
   },
-  statCard: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
-  statInfo: {
-    flex: 1.5,
-    justifyContent: 'center',
-    paddingLeft: 16,
-  },
-  earnings: {
-    fontSize: 26,
-  },
-  token: {
-    fontSize: 14,
+  headerSubtitle: {
+    fontSize: 16,
     opacity: 0.7,
   },
-  earningsLabel: {
-    opacity: 0.7,
-    marginBottom: 12,
-  },
-  shareButton: {
-    alignSelf: 'flex-start',
-  },
-  categoryList: {
+  statusSection: {
     marginBottom: 16,
   },
-  categoriesContainer: {
-    paddingVertical: 8,
-  },
-  categoryButton: {
+  metricsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-  },
-  categoryText: {
-    marginLeft: 6,
-    fontSize: 14,
-  },
-  speedSection: {
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     marginBottom: 16,
   },
-  sectionTitle: {
+  metricCard: {
+    width: (SCREEN_WIDTH - 40) / 2,
     marginBottom: 8,
   },
-  speedDisplay: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 16,
+  metricCardInner: {
+    padding: 14,
+    borderRadius: 12,
   },
-  speedValue: {
-    fontSize: 48,
-    fontWeight: 'bold',
-  },
-  speedUnit: {
-    fontSize: 20,
-    marginLeft: 8,
-    opacity: 0.7,
-  },
-  dataWidgetsRow: {
+  metricHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  dataWidgetHalf: {
-    width: (Dimensions.get('window').width - 48) / 2,
-  },
-  ecoStatsRow: {
-    flexDirection: 'row',
-    marginTop: 16,
-  },
-  ecoStat: {
-    flex: 1,
     alignItems: 'center',
+    marginBottom: 8,
   },
-  ecoValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  ecoUnit: {
+  metricTitle: {
     fontSize: 14,
     opacity: 0.7,
   },
-  actionButtons: {
-    marginTop: 16,
-    marginBottom: 32,
+  metricValue: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  valueText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  unitText: {
+    fontSize: 14,
+    marginLeft: 4,
+    opacity: 0.7,
+  },
+  locationSection: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  actionButton: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  locationDetails: {
+    marginBottom: 16,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  locationLabel: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  locationValue: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  mapPlaceholder: {
+    height: 120,
+    backgroundColor: 'rgba(150, 150, 150, 0.1)',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mapPlaceholderText: {
+    marginTop: 8,
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  gaugeSection: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  gaugeContainer: {
+    marginBottom: 16,
+  },
+  gaugeHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  gaugeTitle: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  gaugeTrack: {
+    height: 8,
+    backgroundColor: 'rgba(150, 150, 150, 0.2)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  gaugeFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  gaugeLabels: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  gaugeValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  gaugeMax: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginLeft: 4,
+  },
+  batterySection: {
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
+  },
+  batteryDetails: {
+    marginBottom: 16,
+  },
+  batteryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  batteryLabel: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  batteryValue: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  batteryProgressContainer: {
+    height: 8,
+    backgroundColor: 'rgba(150, 150, 150, 0.2)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  batteryProgress: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  batteryStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  batteryStatItem: {
     flex: 1,
-    marginHorizontal: 4,
+    alignItems: 'center',
+  },
+  batteryStatValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginVertical: 4,
+  },
+  batteryStatLabel: {
+    fontSize: 12,
+    opacity: 0.7,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(150, 150, 150, 0.3)',
   },
 });

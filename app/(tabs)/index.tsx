@@ -1,21 +1,21 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, ScrollView, View, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring,
-  withSequence,
-  withDelay
+import React, { useEffect } from 'react';
+import { Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withSequence,
+    withSpring
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppBar } from '@/components/AppBar';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { AppBar } from '@/components/AppBar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import { useThemeColor } from '@/hooks/useThemeColor';
 import { useCarData } from '@/features/data-simulation';
+import { useThemeColor } from '@/hooks/useThemeColor';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

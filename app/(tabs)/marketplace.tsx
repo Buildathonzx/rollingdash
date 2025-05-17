@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, TouchableOpacity } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming,
-  withSequence
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import Animated, {
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring,
+    withTiming
 } from 'react-native-reanimated';
 
+import { AppBar } from '@/components/AppBar';
+import { MarketplaceList } from '@/components/MarketplaceComponents';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { AppBar } from '@/components/AppBar';
 import { IconSymbol } from '@/components/ui/IconSymbol';
+import { DataListingItem, getMarketplaceListings } from '@/features/data-simulation';
 import { useThemeColor } from '@/hooks/useThemeColor';
-import { MarketplaceList } from '@/components/MarketplaceComponents';
-import { getMarketplaceListings, DataListingItem } from '@/features/data-simulation';
 
 export default function MarketplaceScreen() {
   const tintColor = useThemeColor({}, 'tint');

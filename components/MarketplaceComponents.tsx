@@ -1,10 +1,10 @@
+import { DataListingItem } from '@/features/data-simulation';
+import { useThemeColor } from '@/hooks/useThemeColor';
 import React, { useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, ScrollView, Switch, Animated } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 import { IconSymbol } from './ui/IconSymbol';
-import { useThemeColor } from '@/hooks/useThemeColor';
-import { DataListingItem } from '@/features/data-simulation';
 
 // Define the props for the DataSharingCard component
 interface DataSharingCardProps {
